@@ -1,13 +1,19 @@
 import tensorflow as tf
 
-from typing import List
+from typing import Union, Tuple, Iterable
 from tensorflow.keras.layers import Layer, Conv2D, BatchNormalization, UpSampling2D
 from tensorflow.keras.regularizers import L2
 
 
 class Conv2DNormBlock(Layer):
 
-    def __init__(self, filters, kernel_size, padding='same', strides=1, **kwargs):
+    def __init__(self,
+                 filters: int,
+                 kernel_size: Union[int, Tuple[int, int]],
+                 padding: str = 'same',
+                 strides: int = 1,
+                 **kwargs):
+
         super(Conv2DNormBlock, self).__init__(**kwargs)
 
         self.filters = filters
@@ -43,7 +49,7 @@ class Conv2DNormBlock(Layer):
 
 class DecoderBlock(Layer):
 
-    def __init__(self, filters, **kwargs):
+    def __init__(self, filters: int, **kwargs):
         super(DecoderBlock, self).__init__(**kwargs)
 
         self.filters = filters
@@ -72,7 +78,7 @@ class DecoderBlock(Layer):
 
 class DecoderCascadedUpSampling(Layer):
 
-    def __init__(self, decoder_channels: List[int], num_skips=3, **kwargs):
+    def __init__(self, decoder_channels: Iterable[int], num_skips: int = 3, **kwargs):
         super(DecoderCascadedUpSampling, self).__init__(**kwargs)
 
         self.decoder_channels = decoder_channels
@@ -109,7 +115,13 @@ class DecoderCascadedUpSampling(Layer):
 
 class DecoderOutput(Layer):
 
-    def __init__(self, filters=1, kernel_size=1, scale_factor=1, name='decoder_outputs', **kwargs):
+    def __init__(self,
+                 filters: int = 1,
+                 kernel_size: Union[int, Tuple[int, int]] = 1,
+                 scale_factor: int = 1,
+                 name: str = 'decoder_outputs',
+                 **kwargs):
+
         super(DecoderOutput, self).__init__(name=name, **kwargs)
 
         self.filters = filters

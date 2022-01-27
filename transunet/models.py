@@ -1,6 +1,6 @@
 import math
 
-from typing import List
+from typing import Iterable, Tuple, Union
 from tensorflow.keras import Model, applications
 from tensorflow.keras.initializers import Constant as ConstantInit
 from tensorflow.keras.layers import Input, Conv2D, Reshape, Dropout, LayerNormalization
@@ -14,22 +14,23 @@ RESNET_BOTTLENECK_LAYER_NAME = 'conv4_block6_preact_relu'
 class VisionTransformer(Model):
 
     def __init__(self,
-                 input_shape=(224, 224, 3),
-                 patch_size=16,
-                 grid_size=14,
-                 transformer_num_blocks=12,
-                 transformer_hidden_size=16 * 16 * 3,
-                 transformer_num_heads=12,
-                 transformer_mlp_units=1024 * 3,
-                 transformer_dropout_rate=0.1,
-                 output_kernel_size=1,
-                 num_classes=1,
-                 hybrid=True,
-                 num_skips=3,
-                 upsample_channels: List[int] = (256, 128, 64, 16),
+                 input_shape: Union[Iterable[int], Tuple[int, int, int]] = (224, 224, 3),
+                 patch_size: int = 16,
+                 grid_size: int = 14,
+                 transformer_num_blocks: int = 12,
+                 transformer_hidden_size: int = 16 * 16 * 3,
+                 transformer_num_heads: int = 12,
+                 transformer_mlp_units: int = 1024 * 3,
+                 transformer_dropout_rate: float = 0.1,
+                 output_kernel_size: int = 1,
+                 num_classes: int = 1,
+                 hybrid: bool = True,
+                 num_skips: int = 3,
+                 upsample_channels: Iterable[int] = (256, 128, 64, 16),
                  w=None,
-                 encoder_trainable=True,
-                 name='VisionTransformer'):
+                 encoder_trainable: bool = True,
+                 name: str = 'VisionTransformer'):
+
         assert input_shape[0] % patch_size == 0
 
         inputs = Input(shape=input_shape)
@@ -50,7 +51,12 @@ class VisionTransformer(Model):
 
         super(VisionTransformer, self).__init__(name=name, inputs=inputs, outputs=outputs)
 
-    def _build_hybrid_model(self, inputs, embedding_info, hybrid_model_info, trainable):
+    def _build_hybrid_model(self,
+                            inputs,
+                            embedding_info: Tuple[int, int],
+                            hybrid_model_info: Tuple[int, int],
+                            trainable: bool):
+
         patch_size, grid_size = embedding_info
         hybrid, num_skips = hybrid_model_info
 
@@ -80,9 +86,11 @@ class VisionTransformer(Model):
 
     def _build_transformer_encoder(self,
                                    inputs,
-                                   patch_size,
-                                   num_blocks, hidden_size, num_heads, mlp_units, dropout_rate,
-                                   trainable, w):
+                                   patch_size: int,
+                                   num_blocks: int, hidden_size: int,
+                                   num_heads: int, mlp_units: int, dropout_rate: float,
+                                   trainable: bool,
+                                   w=None):
         outputs = inputs
         outputs = Conv2D(filters=hidden_size,
                          kernel_size=patch_size,
@@ -113,10 +121,10 @@ class VisionTransformer(Model):
     def _build_decoder(self,
                        inputs,
                        skips,
-                       decoder_channels,
-                       num_skips,
-                       num_classes,
-                       output_kernel_size):
+                       decoder_channels: Iterable[int],
+                       num_skips: int,
+                       num_classes: int,
+                       output_kernel_size: Union[int, Tuple[int, int]]):
         outputs = inputs
         if decoder_channels is not None:
             outputs = DecoderCascadedUpSampling(decoder_channels, num_skips)({

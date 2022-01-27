@@ -19,7 +19,12 @@ def scaled_dot_product_attention(query, key, values):
 
 class MultiHeadAttention(Layer):
 
-    def __init__(self, num_heads, w=None, trainable=True, *args, **kwargs):
+    def __init__(self,
+                 num_heads: int,
+                 w=None,
+                 trainable: bool = True,
+                 *args, **kwargs):
+
         super(MultiHeadAttention, self).__init__(trainable=trainable, *args, **kwargs)
 
         self.num_heads = num_heads
@@ -74,7 +79,12 @@ class MultiHeadAttention(Layer):
 
 class TransformerBlock(Layer):
 
-    def __init__(self, num_heads, units, dropout_rate, w=None, trainable=True, *args, **kwargs):
+    def __init__(self,
+                 num_heads: int, units: int, dropout_rate: float,
+                 w=None,
+                 trainable: bool = True,
+                 *args, **kwargs):
+
         super(TransformerBlock, self).__init__(trainable=trainable, *args, **kwargs)
 
         self.num_heads = num_heads

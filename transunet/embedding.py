@@ -8,7 +8,11 @@ from tensorflow.keras.initializers import Constant as ConstantInit
 
 class PositionEmbedding(Layer):
 
-    def __init__(self, w=None, trainable=True, **kwargs):
+    def __init__(self,
+                 w=None,
+                 trainable: bool = True,
+                 **kwargs):
+
         super(PositionEmbedding, self).__init__(trainable=trainable, **kwargs)
 
         self.w = w
