@@ -3,7 +3,7 @@ import tensorflow as tf
 from tensorflow.keras import Sequential
 from tensorflow.keras.activations import gelu
 from tensorflow.keras.layers import Layer, Dense, LayerNormalization, Dropout, Lambda
-from tensorflow.keras.initializers import Constant as ConstantInit
+from transunet.utils import default_initializers
 
 
 def scaled_dot_product_attention(query, key, values):
@@ -38,18 +38,24 @@ class MultiHeadAttention(Layer):
 
         self.hidden_size = hidden_size
         self.depth = hidden_size // self.num_heads
+
+        query_inits = default_initializers('{}/query'.format(self.name), ['kernel', 'bias'], w=self.w)
+        key_inits = default_initializers('{}/key'.format(self.name), ['kernel', 'bias'], w=self.w)
+        values_inits = default_initializers('{}/value'.format(self.name), ['kernel', 'bias'], w=self.w)
+        combine_inits = default_initializers('{}/out'.format(self.name), ['kernel', 'bias'], w=self.w)
+
         self.query_dense = Dense(hidden_size, name='query',
-                                 kernel_initializer=ConstantInit(self.w['{}/query/kernel'.format(self.name)]) if self.w is not None else 'glorot_uniform',
-                                 bias_initializer=ConstantInit(self.w['{}/query/bias'.format(self.name)]) if self.w is not None else 'zeros')
+                                 kernel_initializer=query_inits[0] or 'glorot_uniform',
+                                 bias_initializer=query_inits[1] or 'zeros')
         self.key_dense = Dense(hidden_size, name='key',
-                               kernel_initializer=ConstantInit(self.w['{}/key/kernel'.format(self.name)]) if self.w is not None else 'glorot_uniform',
-                               bias_initializer=ConstantInit(self.w['{}/key/bias'.format(self.name)]) if self.w is not None else 'zeros')
+                               kernel_initializer=key_inits[0] or 'glorot_uniform',
+                               bias_initializer=key_inits[1] or 'zeros')
         self.values_dense = Dense(hidden_size, name='values',
-                                  kernel_initializer=ConstantInit(self.w['{}/value/kernel'.format(self.name)]) if self.w is not None else 'glorot_uniform',
-                                  bias_initializer=ConstantInit(self.w['{}/value/bias'.format(self.name)]) if self.w is not None else 'zeros')
+                                  kernel_initializer=values_inits[0] or 'glorot_uniform',
+                                  bias_initializer=values_inits[1] or 'zeros')
         self.dense = Dense(hidden_size, name='combine',
-                           kernel_initializer=ConstantInit(self.w['{}/out/kernel'.format(self.name)]) if self.w is not None else 'glorot_uniform',
-                           bias_initializer=ConstantInit(self.w['{}/out/bias'.format(self.name)]) if self.w is not None else 'zeros')
+                           kernel_initializer=combine_inits[0] or 'glorot_uniform',
+                           bias_initializer=combine_inits[1] or 'zeros')
 
     def split_heads(self, x, batch_size):
         x = tf.reshape(x, (batch_size, -1, self.num_heads, self.depth))
@@ -100,27 +106,32 @@ class TransformerBlock(Layer):
         mlp_name = 'MlpBlock_3'
         dense0_name = '{}/{}/Dense_0'.format(self.name, mlp_name)
         dense1_name = '{}/{}/Dense_1'.format(self.name, mlp_name)
+
+        dense0_inits = default_initializers(dense0_name, ['kernel', 'bias'], w=self.w)
+        dense1_inits = default_initializers(dense1_name, ['kernel', 'bias'], w=self.w)
         self.mlp = Sequential(name=mlp_name, layers=[
             Dense(self.units, name=dense0_name, activation='linear',
-                  kernel_initializer=ConstantInit(self.w['{}/kernel'.format(dense0_name)]) if self.w is not None else 'glorot_uniform',
-                  bias_initializer=ConstantInit(self.w['{}/bias'.format(dense0_name)]) if self.w is not None else 'zeros'),
+                  kernel_initializer=dense0_inits[0] or 'glorot_uniform',
+                  bias_initializer=dense0_inits[1] or 'zeros'),
             Lambda(lambda x: gelu(x, approximate=False)),
             Dropout(self.dropout_rate),
             Dense(input_shape[-1], name=dense1_name,
-                  kernel_initializer=ConstantInit(self.w['{}/kernel'.format(dense1_name)]) if self.w is not None else 'glorot_uniform',
-                  bias_initializer=ConstantInit(self.w['{}/bias'.format(dense1_name)]) if self.w is not None else 'zeros'),
+                  kernel_initializer=dense1_inits[0] or 'glorot_uniform',
+                  bias_initializer=dense1_inits[1] or 'zeros'),
             Dropout(self.dropout_rate)
         ])
 
         layer_norm_name = '{}/LayerNorm_0'.format(self.name)
+        layer_norm_inits = default_initializers(layer_norm_name, ['scale', 'bias'], w=self.w)
         self.layer_norm1 = LayerNormalization(epsilon=1e-6, name=layer_norm_name,
-                                              gamma_initializer=ConstantInit(self.w['{}/scale'.format(layer_norm_name)]) if self.w is not None else 'ones',
-                                              beta_initializer=ConstantInit(self.w['{}/bias'.format(layer_norm_name)]) if self.w is not None else 'zeros')
+                                              gamma_initializer=layer_norm_inits[0] or 'ones',
+                                              beta_initializer=layer_norm_inits[1] or 'zeros')
 
         layer_norm_name = '{}/LayerNorm_2'.format(self.name)
+        layer_norm_inits = default_initializers(layer_norm_name, ['scale', 'bias'], w=self.w)
         self.layer_norm2 = LayerNormalization(epsilon=1e-6, name=layer_norm_name,
-                                              gamma_initializer=ConstantInit(self.w['{}/scale'.format(layer_norm_name)]) if self.w is not None else 'ones',
-                                              beta_initializer=ConstantInit(self.w['{}/bias'.format(layer_norm_name)]) if self.w is not None else 'zeros')
+                                              gamma_initializer=layer_norm_inits[0] or 'ones',
+                                              beta_initializer=layer_norm_inits[1] or 'zeros')
         self.dropout = Dropout(self.dropout_rate)
 
     def call(self, inputs, *args, **kwargs):
