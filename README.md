@@ -2,6 +2,11 @@
 
 An ML model with U-shaped architecture with ResNet50V2 and Vision Transformer based encoders
 
+#### Install
+```bash
+pip install --upgrade git+https://github.com/Basars/trans-unet.git
+```
+
 #### Usage:
 ```python
 import numpy as np
