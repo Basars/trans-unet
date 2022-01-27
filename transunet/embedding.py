@@ -22,10 +22,11 @@ class PositionEmbedding(Layer):
         assert len(input_shape) == 3, 'Expected ndim = 3, but ndim = {}'.format(len(input_shape))
 
         shape = (1, input_shape[1], input_shape[2])
-        if self.w is None:
+
+        key_name = '{}/pos_embedding'.format(self.name)
+        if self.w is None or key_name not in self.w:
             initializer = tf.random_normal_initializer(stddev=0.06)
         else:
-            key_name = '{}/pos_embedding'.format(self.name)
             weights = self.w[key_name]
             if shape == weights.shape:
                 initializer = ConstantInit(weights)

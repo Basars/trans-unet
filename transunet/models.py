@@ -2,9 +2,9 @@ import math
 
 from typing import Iterable, Tuple, Union
 from tensorflow.keras import Model, applications
-from tensorflow.keras.initializers import Constant as ConstantInit
 from tensorflow.keras.layers import Input, Conv2D, Reshape, Dropout, LayerNormalization
 from transunet import PositionEmbedding, TransformerBlock, DecoderCascadedUpSampling, DecoderOutput
+from transunet.utils import default_initializers
 
 
 RESNET_SKIP_LAYER_NAMES = ['conv3_block4_preact_relu', 'conv2_block3_preact_relu', 'conv1_conv']
@@ -91,6 +91,9 @@ class VisionTransformer(Model):
                                    num_heads: int, mlp_units: int, dropout_rate: float,
                                    trainable: bool,
                                    w=None):
+
+        embedding_inits = default_initializers('embedding', ['kernel', 'bias'], w=w)
+
         outputs = inputs
         outputs = Conv2D(filters=hidden_size,
                          kernel_size=patch_size,
@@ -98,8 +101,8 @@ class VisionTransformer(Model):
                          padding='valid',
                          name='embedding',
                          trainable=trainable,
-                         kernel_initializer=ConstantInit(w['embedding/kernel']) if w is not None else 'glorot_uniform',
-                         bias_initializer=ConstantInit(w['embedding/bias']) if w is not None else 'zeros')(outputs)
+                         kernel_initializer=embedding_inits[0] or 'glorot_uniform',
+                         bias_initializer=embedding_inits[1] or 'zeros')(outputs)
         outputs = Reshape((outputs.shape[1] * outputs.shape[2], hidden_size))(outputs)
         outputs = PositionEmbedding(name='Transformer/posembed_input', w=w, trainable=trainable)(outputs)
         outputs = Dropout(0.1)(outputs)
@@ -111,9 +114,10 @@ class VisionTransformer(Model):
                                           trainable=trainable)(outputs)
 
         layer_norm_name = 'Transformer/encoder_norm'
+        layer_norm_inits = default_initializers(layer_norm_name, ['scale', 'bias'], w=w)
         outputs = LayerNormalization(epsilon=1e-6, name=layer_norm_name,
-                                     gamma_initializer=ConstantInit(w['{}/scale'.format(layer_norm_name)]) if w is not None else 'ones',
-                                     beta_initializer=ConstantInit(w['{}/bias'.format(layer_norm_name)]) if w is not None else 'zeros')(outputs)
+                                     gamma_initializer=layer_norm_inits[0] or 'ones',
+                                     beta_initializer=layer_norm_inits[1] or 'zeros')(outputs)
         num_patch_sqrt = int(math.sqrt(outputs.shape[1]))
         outputs = Reshape((num_patch_sqrt, num_patch_sqrt, hidden_size))(outputs)
         return outputs
