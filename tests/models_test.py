@@ -1,6 +1,5 @@
 import pytest
 import numpy as np
-import tensorflow as tf
 
 from transunet import VisionTransformer
 
